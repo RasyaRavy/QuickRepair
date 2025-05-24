@@ -10,6 +10,7 @@ import 'package:quickrepair/screens/report/public_reports_screen.dart';
 import 'package:quickrepair/utils/status_utils.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:quickrepair/screens/chat/chat_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _pages = [
     const HomeDashboardPage(),
     const ReportListScreen(),
+    const ChatScreen(),
     const PublicReportsScreen(),
     const ProfileScreen(),
   ];
@@ -104,41 +106,90 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.15),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
         ),
         centerTitle: true,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              _currentIndex == 0 ? LucideIcons.home :
-              _currentIndex == 1 ? LucideIcons.clipboard :
-              _currentIndex == 2 ? LucideIcons.globe :
-              LucideIcons.user,
-              size: 22,
-              color: Colors.white,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              _currentIndex == 0 ? AppStrings.appName :
-              _currentIndex == 1 ? AppStrings.submittedReports :
-              _currentIndex == 2 ? AppStrings.publicReports :
-              AppStrings.profile,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                letterSpacing: 0.2,
+        title: AnimatedOpacity(
+          opacity: 1.0,
+          duration: const Duration(milliseconds: 300),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.3),
+                width: 1,
               ),
             ),
-          ],
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _currentIndex == 0 ? LucideIcons.home :
+                  _currentIndex == 1 ? LucideIcons.clipboard :
+                  _currentIndex == 2 ? LucideIcons.messageCircle :
+                  _currentIndex == 3 ? LucideIcons.globe :
+                  LucideIcons.user,
+                  size: 18,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  _currentIndex == 0 ? AppStrings.appName :
+                  _currentIndex == 1 ? AppStrings.submittedReports :
+                  _currentIndex == 2 ? AppStrings.messages :
+                  _currentIndex == 3 ? AppStrings.publicReports :
+                  AppStrings.profile,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: const Icon(
+                  LucideIcons.bellRing,
+                  size: 18,
+                  color: Colors.white,
+                ),
+              ),
+              onPressed: () {
+                // Handle notifications
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Notifications feature coming soon!'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
       body: IndexedStack(
         index: _currentIndex,
@@ -151,21 +202,56 @@ class _HomeScreenState extends State<HomeScreen> {
               },
               tooltip: AppStrings.createReport,
               backgroundColor: Colors.orange.shade500,
-              elevation: 4,
+              elevation: 8,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Icon(LucideIcons.plus, size: 24),
+              child: Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.orange.shade400,
+                      Colors.orange.shade700,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.orange.withOpacity(0.3),
+                      blurRadius: 10,
+                      spreadRadius: 1,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  LucideIcons.plus,
+                  size: 24,
+                  color: Colors.white,
+                ),
+              ),
             )
           : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.white,
+              Colors.grey.shade50,
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 15,
+              offset: const Offset(0, -3),
             ),
           ],
           borderRadius: const BorderRadius.only(
@@ -182,8 +268,10 @@ class _HomeScreenState extends State<HomeScreen> {
             currentIndex: _currentIndex,
             onTap: _onTabTapped,
             type: BottomNavigationBarType.fixed,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
             selectedItemColor: Colors.orange.shade600,
-            unselectedItemColor: Colors.grey.shade600,
+            unselectedItemColor: Colors.grey.shade500,
             selectedLabelStyle: const TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 12,
@@ -191,13 +279,12 @@ class _HomeScreenState extends State<HomeScreen> {
             unselectedLabelStyle: const TextStyle(
               fontSize: 11,
             ),
-            elevation: 0,
-            backgroundColor: Colors.white,
             items: [
               _buildNavBarItem(0, LucideIcons.home, AppStrings.home),
               _buildNavBarItem(1, LucideIcons.clipboard, AppStrings.reports),
-              _buildNavBarItem(2, LucideIcons.globe, AppStrings.publicReports),
-              _buildNavBarItem(3, LucideIcons.user, AppStrings.profile),
+              _buildNavBarItem(2, LucideIcons.messageCircle, AppStrings.messages),
+              _buildNavBarItem(3, LucideIcons.globe, AppStrings.publicReports),
+              _buildNavBarItem(4, LucideIcons.user, AppStrings.profile),
             ],
           ),
         ),
@@ -213,15 +300,25 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),
-          padding: EdgeInsets.all(isSelected ? 10 : 0),
+          padding: EdgeInsets.all(isSelected ? 12 : 0),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.orange.withOpacity(0.15) : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
+            gradient: isSelected
+                ? LinearGradient(
+                    colors: [
+                      Colors.orange.withOpacity(0.25),
+                      Colors.orange.withOpacity(0.1),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            color: isSelected ? null : Colors.transparent,
+            borderRadius: BorderRadius.circular(14),
           ),
           child: Icon(
             icon,
-            size: 20,
-            color: isSelected ? Colors.orange.shade600 : Colors.grey.shade600,
+            size: 22,
+            color: isSelected ? Colors.orange.shade600 : Colors.grey.shade500,
           ),
         ).animate(target: isSelected ? 1 : 0)
          .scaleXY(
@@ -425,59 +522,92 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
   }
   
   Widget _buildSectionHeader(String title, IconData icon) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.orange.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: Colors.orange.shade700, size: 18),
-        ),
-        const SizedBox(width: 12),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.black.withOpacity(0.8),
-            letterSpacing: 0.3,
-          ),
-        ),
-        const Spacer(),
-        if (title == 'Recent Reports')
-          InkWell(
-            onTap: () {
-              final homeScreenState = context.findAncestorStateOfType<_HomeScreenState>();
-              homeScreenState?.setState(() {
-                homeScreenState._currentIndex = 2; // Index of PublicReportsScreen
-              });
-            },
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.all(4.0),
-              child: Row(
-                children: [
-                  Text(
-                    'View all',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.orange.shade700,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    LucideIcons.chevronRight,
-                    size: 14,
-                    color: Colors.orange.shade700,
-                  ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.orange.withOpacity(0.3),
+                  Colors.orange.withOpacity(0.1),
                 ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.orange.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Icon(icon, color: Colors.orange.shade700, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.black.withOpacity(0.8),
+              letterSpacing: 0.3,
             ),
           ),
-      ],
+          const Spacer(),
+          if (title == 'Recent Reports')
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.orange.withOpacity(0.2),
+                    Colors.orange.withOpacity(0.05),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    final homeScreenState = context.findAncestorStateOfType<_HomeScreenState>();
+                    homeScreenState?.setState(() {
+                      homeScreenState._currentIndex = 3; // Index of PublicReportsScreen
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Row(
+                      children: [
+                        Text(
+                          'View all',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.orange.shade700,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          LucideIcons.chevronRight,
+                          size: 16,
+                          color: Colors.orange.shade700,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     ).animate()
       .fadeIn(duration: 400.ms)
       .slideX(
@@ -496,9 +626,15 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
         boxShadow: [
           BoxShadow(
             color: Colors.orange.withOpacity(0.25),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
             spreadRadius: 2,
+          ),
+          BoxShadow(
+            color: Colors.orange.withOpacity(0.1),
+            blurRadius: 30,
+            offset: const Offset(0, 15),
+            spreadRadius: 10,
           ),
         ],
       ),
@@ -519,6 +655,12 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(24),
+            image: const DecorationImage(
+              image: AssetImage('assets/wrench.png'),
+              alignment: Alignment.bottomRight,
+              scale: 2.5,
+              opacity: 0.15,
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -527,24 +669,35 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.3),
+                      color: Colors.white.withOpacity(0.25),
                       shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.5),
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
                     ),
                     child: const Icon(
                       LucideIcons.user,
                       color: Colors.white,
-                      size: 28,
+                      size: 30,
                     ),
                   ).animate()
                     .scaleXY(
-                      duration: 400.ms,
+                      duration: 450.ms,
                       curve: Curves.easeOutBack,
                       begin: 0.8,
                       end: 1.0,
                     ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -555,6 +708,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
                             color: Colors.white.withOpacity(0.9),
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
+                            letterSpacing: 0.2,
                           ),
                         ).animate()
                           .fadeIn(delay: 100.ms)
@@ -564,7 +718,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
                           _username ?? 'User',
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 24,
+                            fontSize: 28,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.5,
                           ),
@@ -578,10 +732,21 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
                     future: _userReportCountFuture,
                     builder: (context, snapshot) {
                       return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.3),
+                          color: Colors.white.withOpacity(0.25),
                           borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.3),
+                            width: 1,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -589,7 +754,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
                             Icon(
                               LucideIcons.fileText,
                               color: Colors.white,
-                              size: 16,
+                              size: 18,
                             ),
                             const SizedBox(width: 6),
                             Text(
@@ -601,7 +766,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 14,
+                                fontSize: 16,
                               ),
                             ),
                           ],
@@ -618,40 +783,74 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              InkWell(
-                onTap: () {
-                  Navigator.of(context).pushNamed(AppRoutes.createReport);
-                },
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.25),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.3),
-                      width: 1,
+              const SizedBox(height: 24),
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
                     ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        LucideIcons.plus,
-                        color: Colors.white,
-                        size: 20,
+                  ],
+                ),
+                child: InkWell(
+                  onTap: () {
+                    Navigator.of(context).pushNamed(AppRoutes.createReport);
+                  },
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.white.withOpacity(0.3),
+                          Colors.white.withOpacity(0.2),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Create New Report',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.5),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 5,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            LucideIcons.plus,
+                            color: Colors.orange.shade700,
+                            size: 20,
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 14),
+                        const Text(
+                          'Create New Report',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ).animate()
@@ -660,7 +859,37 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
                   begin: 0.2,
                   end: 0,
                   delay: 400.ms,
-                  duration: 400.ms,
+                  duration: 500.ms,
+                  curve: Curves.easeOutQuad,
+                ),
+                
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildQuickInfoCard(
+                    title: 'My Reports', 
+                    icon: LucideIcons.clipboard,
+                    onTap: () => _navigateToReportsTab(context),
+                  ),
+                  _buildQuickInfoCard(
+                    title: 'Public Reports', 
+                    icon: LucideIcons.globe,
+                    onTap: () {
+                      final homeScreenState = context.findAncestorStateOfType<_HomeScreenState>();
+                      homeScreenState?.setState(() {
+                        homeScreenState._currentIndex = 3; // Index of PublicReportsScreen
+                      });
+                    },
+                  ),
+                ],
+              ).animate()
+                .fadeIn(delay: 500.ms)
+                .slideY(
+                  begin: 0.2,
+                  end: 0,
+                  delay: 500.ms,
+                  duration: 500.ms,
                   curve: Curves.easeOutQuad,
                 ),
             ],
@@ -676,6 +905,47 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
         curve: Curves.easeOutQuad,
       );
   }
+  
+  Widget _buildQuickInfoCard({
+    required String title,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.3),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: Colors.white,
+              size: 16,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildQuickActionsGrid() {
     return Container(
@@ -683,10 +953,10 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 12,
-            spreadRadius: 0,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 15,
+            spreadRadius: 1,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -696,7 +966,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
           borderRadius: BorderRadius.circular(20),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: LayoutBuilder(
             builder: (context, constraints) {
               // Determine if we should use a grid or wrap based on available width
@@ -708,6 +978,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
                   children: [
                     _buildQuickActionItem(
                       title: 'My Reports',
+                      subtitle: 'Check your activity',
                       icon: LucideIcons.fileText,
                       color: Colors.blue.shade400,
                       onTap: () => _navigateToReportsTab(context),
@@ -716,12 +987,13 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
                     const SizedBox(width: 16),
                     _buildQuickActionItem(
                       title: 'Public Reports',
+                      subtitle: 'Browse public repairs',
                       icon: LucideIcons.globe,
                       color: Colors.green.shade400,
                       onTap: () {
                         final homeScreenState = context.findAncestorStateOfType<_HomeScreenState>();
                         homeScreenState?.setState(() {
-                          homeScreenState._currentIndex = 2; // Index of PublicReportsScreen
+                          homeScreenState._currentIndex = 3; // Index of PublicReportsScreen
                         });
                       },
                       width: itemWidth,
@@ -733,6 +1005,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
                   children: [
                     _buildQuickActionItem(
                       title: 'My Reports',
+                      subtitle: 'Check your activity',
                       icon: LucideIcons.fileText,
                       color: Colors.blue.shade400,
                       onTap: () => _navigateToReportsTab(context),
@@ -741,12 +1014,13 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
                     const SizedBox(height: 16),
                     _buildQuickActionItem(
                       title: 'Public Reports',
+                      subtitle: 'Browse public repairs',
                       icon: LucideIcons.globe,
                       color: Colors.green.shade400,
                       onTap: () {
                         final homeScreenState = context.findAncestorStateOfType<_HomeScreenState>();
                         homeScreenState?.setState(() {
-                          homeScreenState._currentIndex = 2;
+                          homeScreenState._currentIndex = 3;
                         });
                       },
                       width: itemWidth,
@@ -771,6 +1045,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
 
   Widget _buildQuickActionItem({
     required String title,
+    required String subtitle,
     required IconData icon,
     required Color color,
     required Function() onTap,
@@ -784,21 +1059,39 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
         child: Ink(
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            gradient: LinearGradient(
+              colors: [
+                color.withOpacity(0.15),
+                color.withOpacity(0.05),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: color.withOpacity(0.3),
+              width: 1,
+            ),
           ),
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
                 child: Icon(
                   icon,
                   color: color,
-                  size: 20,
+                  size: 22,
                 ),
               ),
               const SizedBox(width: 14),
@@ -816,7 +1109,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'View all',
+                      subtitle,
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.grey.shade600,
@@ -860,10 +1153,10 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 12,
-                spreadRadius: 0,
-                offset: const Offset(0, 4),
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 15,
+                spreadRadius: 1,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -872,21 +1165,24 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            child: ListView.separated(
-              physics: const NeverScrollableScrollPhysics(),
-              shrinkWrap: true,
-              itemCount: reports.length,
-              separatorBuilder: (context, index) => Divider(
-                height: 1,
-                thickness: 1,
-                color: Colors.grey.withOpacity(0.1),
-                indent: 16,
-                endIndent: 16,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+              child: ListView.separated(
+                physics: const NeverScrollableScrollPhysics(),
+                shrinkWrap: true,
+                itemCount: reports.length,
+                separatorBuilder: (context, index) => Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: Colors.grey.withOpacity(0.1),
+                  indent: 22,
+                  endIndent: 22,
+                ),
+                itemBuilder: (context, index) {
+                  final report = reports[index];
+                  return _buildReportListItem(report, index);
+                },
               ),
-              itemBuilder: (context, index) {
-                final report = reports[index];
-                return _buildReportListItem(report, index);
-              },
             ),
           ),
         ).animate()
@@ -895,7 +1191,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
             begin: 0.2,
             end: 0,
             delay: 300.ms,
-            duration: 400.ms,
+            duration: 500.ms,
             curve: Curves.easeOutQuad,
           );
       },
@@ -929,62 +1225,99 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
     }
     
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       leading: Container(
-        width: 50,
-        height: 50,
+        width: 54,
+        height: 54,
         decoration: BoxDecoration(
-          color: statusColor.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(14),
+          gradient: LinearGradient(
+            colors: [
+              statusColor.withOpacity(0.2),
+              statusColor.withOpacity(0.05),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: statusColor.withOpacity(0.3),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: statusColor.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Icon(
           statusIcon,
           color: statusColor,
-          size: 22,
+          size: 24,
         ),
-      ),
+      ).animate(delay: (100 * index).ms + 400.ms)
+          .fadeIn(duration: 300.ms)
+          .slideX(begin: -0.1, end: 0, curve: Curves.easeOutQuad),
       title: Text(
         report.title,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           fontWeight: FontWeight.w600,
-          fontSize: 15,
+          fontSize: 16,
           color: Colors.grey.shade800,
         ),
       ),
       subtitle: Padding(
-        padding: const EdgeInsets.only(top: 4),
+        padding: const EdgeInsets.only(top: 6),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: statusColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: statusColor.withOpacity(0.2),
+                  width: 1,
+                ),
               ),
               child: Text(
                 status,
                 style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
                   color: statusColor,
                 ),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
                 'Reported ${_getTimeAgo(report.createdAt)}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 13,
                   color: Colors.grey.shade600,
                 ),
               ),
             ),
           ],
+        ),
+      ),
+      trailing: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          LucideIcons.chevronRight,
+          size: 18,
+          color: Colors.grey.shade600,
         ),
       ),
       onTap: () {
@@ -994,15 +1327,9 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
           arguments: report.id
         );
       },
-    ).animate()
-      .fadeIn(delay: Duration(milliseconds: 100 * index))
-      .slideX(
-        begin: 0.1,
-        end: 0,
-        delay: Duration(milliseconds: 100 * index),
-        duration: 400.ms,
-        curve: Curves.easeOutQuad,
-      );
+    ).animate(delay: (100 * index).ms + 400.ms)
+        .fadeIn(duration: 300.ms)
+        .slideY(begin: 0.1, end: 0, curve: Curves.easeOutQuad);
   }
   
   String _getTimeAgo(DateTime dateTime) {
@@ -1021,118 +1348,232 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> with SingleTicker
   }
   
   Widget _buildLoadingReportsList() {
-    return SizedBox(
-      height: 300,
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            spreadRadius: 1,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
       child: Card(
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
-        child: const Padding(
-          padding: EdgeInsets.all(20.0),
-          child: Center(
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
-              strokeWidth: 2,
-            ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: List.generate(3, (index) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 54,
+                      height: 54,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ).animate(delay: 200.ms)
+                      .shimmer(duration: 1200.ms, color: Colors.grey.shade100),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: double.infinity,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ).animate(delay: 400.ms)
+                            .shimmer(duration: 1200.ms, color: Colors.grey.shade100),
+                          const SizedBox(height: 8),
+                          Container(
+                            width: 120,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ).animate(delay: 600.ms)
+                            .shimmer(duration: 1200.ms, color: Colors.grey.shade100),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
           ),
         ),
       ),
-    );
+    ).animate()
+      .fadeIn(duration: 300.ms);
   }
   
   Widget _buildErrorReportsList(String error) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            spreadRadius: 1,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              LucideIcons.alertTriangle,
-              color: Colors.amber.shade600,
-              size: 36,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Unable to load reports',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey.shade800,
+      child: Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(30),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  LucideIcons.alertTriangle,
+                  color: Colors.red,
+                  size: 32,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Pull down to try again',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
+              const SizedBox(height: 16),
+              Text(
+                'Error Loading Reports',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: Colors.grey.shade800,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                'Please try again later',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: _loadRecentReports,
+                icon: const Icon(LucideIcons.refreshCw, size: 16),
+                label: const Text('Retry'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  backgroundColor: Colors.red.shade400,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    );
+    ).animate()
+      .fadeIn(delay: 300.ms, duration: 500.ms)
+      .slideY(
+        begin: 0.2,
+        end: 0,
+        delay: 300.ms,
+        duration: 400.ms,
+        curve: Curves.easeOutQuad,
+      );
   }
   
   Widget _buildEmptyReportsList() {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            spreadRadius: 1,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              LucideIcons.fileSearch,
-              color: Colors.grey.shade400,
-              size: 48,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No reports yet',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey.shade800,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Be the first to submit a report!',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.of(context).pushNamed(AppRoutes.createReport);
-              },
-              icon: Icon(LucideIcons.plus, size: 18),
-              label: const Text('Create New Report'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.orange.shade700,
-                side: BorderSide(color: Colors.orange.shade300),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+      child: Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(30),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  LucideIcons.clipboardList,
+                  color: Colors.orange.shade700,
+                  size: 32,
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              Text(
+                'No Reports Yet',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Reports will appear here once they are submitted.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pushNamed(AppRoutes.createReport);
+                },
+                icon: const Icon(LucideIcons.plus, size: 16),
+                label: const Text('Create First Report'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    );
+    ).animate()
+      .fadeIn(delay: 300.ms, duration: 500.ms)
+      .slideY(
+        begin: 0.2,
+        end: 0,
+        delay: 300.ms,
+        duration: 400.ms,
+        curve: Curves.easeOutQuad,
+      );
   }
 } 

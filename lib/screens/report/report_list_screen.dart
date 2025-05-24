@@ -5,7 +5,9 @@ import 'package:quickrepair/constants/strings.dart';
 import 'package:quickrepair/constants/routes.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:quickrepair/utils/status_utils.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+import 'package:timeago/timeago.dart' as timeago;
+import 'package:intl/intl.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 class ReportListScreen extends StatefulWidget {
   const ReportListScreen({super.key});
@@ -17,11 +19,24 @@ class ReportListScreen extends StatefulWidget {
 class _ReportListScreenState extends State<ReportListScreen> {
   Future<List<ReportModel>>? _reportsFuture;
   String _filterStatus = 'All';
+  String _searchQuery = '';
+  bool _isSearchVisible = false;
+  final TextEditingController _searchController = TextEditingController();
   final List<String> _statusFilters = ['All', 'New', 'Assigned', 'In Progress', 'Completed', 'Cancelled'];
+  
+  // For pull refresh
+  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey = GlobalKey<RefreshIndicatorState>();
+  
+  // Statistics
+  int _totalReports = 0;
+  int _completedReports = 0;
+  int _pendingReports = 0;
+  int _inProgressReports = 0;
   
   @override
   void initState() {
     super.initState();
+    
     // Ensure user is available before loading reports
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (SupabaseService.currentUser != null) {
@@ -34,7 +49,10 @@ class _ReportListScreenState extends State<ReportListScreen> {
           _reportsFuture = Future.value([]); // Empty list or an error state
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User not authenticated. Please log in.')),
+          const SnackBar(
+            content: Text('User not authenticated. Please log in.'),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     });
@@ -44,12 +62,12 @@ class _ReportListScreenState extends State<ReportListScreen> {
   void dispose() {
     // Remove the listener when the screen is disposed
     SupabaseService.removeReportListener(_handleReportChanges);
+    _searchController.dispose();
     super.dispose();
   }
 
   // Handler for report changes
   void _handleReportChanges(dynamic payload) {
-    print('Report changes detected in ReportListScreen: ${payload['type'] ?? 'update'}');
     _loadReports();
   }
 
@@ -60,7 +78,10 @@ class _ReportListScreenState extends State<ReportListScreen> {
       // or by routing guards if the user is not authenticated.
       if (mounted) {
          ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cannot load reports: User not found.')),
+          const SnackBar(
+            content: Text('Cannot load reports: User not found.'),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
       setState(() {
@@ -85,6 +106,12 @@ class _ReportListScreenState extends State<ReportListScreen> {
           await SupabaseService.checkAndUpdateNewReportStatus(report);
         }
         
+        // Calculate statistics
+        _totalReports = reports.length;
+        _completedReports = reports.where((r) => r.status.toLowerCase() == 'completed').length;
+        _pendingReports = reports.where((r) => r.status.toLowerCase() == 'new').length;
+        _inProgressReports = reports.where((r) => r.status.toLowerCase() == 'in progress' || r.status.toLowerCase() == 'assigned').length;
+        
         // Return the reports list
         return reports;
       })
@@ -92,12 +119,48 @@ class _ReportListScreenState extends State<ReportListScreen> {
         // Handle errors during data fetching
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error loading reports: ${error.toString()}')),
+            SnackBar(
+              content: Text('Error loading reports: ${error.toString()}'),
+              behavior: SnackBarBehavior.floating,
+            ),
           );
         }
         return <ReportModel>[]; // Return empty list on error
       });
     });
+  }
+  
+  // Filter reports based on search query and status
+  List<ReportModel> _getFilteredReports(List<ReportModel> allReports) {
+    // First filter by status
+    late List<ReportModel> statusFiltered;
+    
+    if (_filterStatus == 'All') {
+      statusFiltered = allReports;
+    } else if (_filterStatus == 'In Progress') {
+      // Special handling for "In Progress"
+      statusFiltered = allReports.where((report) => 
+        report.status.toLowerCase() == 'in progress' || 
+        report.status.toLowerCase() == 'assigned'
+      ).toList();
+    } else {
+      // For other statuses, do a direct case-insensitive comparison
+      statusFiltered = allReports.where((report) =>
+        report.status.toLowerCase() == _filterStatus.toLowerCase()
+      ).toList();
+    }
+    
+    // Then filter by search query if it exists
+    if (_searchQuery.isEmpty) {
+      return statusFiltered;
+    }
+    
+    return statusFiltered.where((report) {
+      final query = _searchQuery.toLowerCase();
+      return report.title.toLowerCase().contains(query) ||
+             report.description.toLowerCase().contains(query) ||
+             report.location.toLowerCase().contains(query);
+    }).toList();
   }
 
   @override
@@ -108,7 +171,7 @@ class _ReportListScreenState extends State<ReportListScreen> {
       // This part of the UI might be shown briefly if redirection is slow
       return Scaffold(
         appBar: AppBar(
-          title: const Text(AppStrings.myReports), // Changed title
+          title: const Text(AppStrings.myReports),
         ),
         body: const Center(
           child: Column(
@@ -116,8 +179,6 @@ class _ReportListScreenState extends State<ReportListScreen> {
             children: [
               Text('Please log in to see your reports.'),
               SizedBox(height: 16),
-              // Optionally, add a login button
-              // ElevatedButton(onPressed: () => Navigator.of(context).pushReplacementNamed(AppRoutes.login), child: Text(AppStrings.login))
             ],
           ),
         ),
@@ -125,31 +186,46 @@ class _ReportListScreenState extends State<ReportListScreen> {
     }
     
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('My Reports'),
+        backgroundColor: Colors.orange,
+        actions: [
+          IconButton(
+            icon: const Icon(LucideIcons.search),
+            onPressed: () => _showSearchDialog(context),
+            tooltip: 'Search reports',
+          ),
+          IconButton(
+            icon: const Icon(LucideIcons.filter),
+            onPressed: () => _showFilterBottomSheet(context),
+            tooltip: 'Filter reports',
+          ),
+        ],
+      ),
       body: RefreshIndicator(
+        key: _refreshIndicatorKey,
         onRefresh: _loadReports,
         color: Colors.orange,
         child: Column(
           children: [
-            // Status Filter Chips
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            // Statistics Card
+            _buildStatisticsCard(),
+
+            // Status Filter Pills
+            Container(
+              height: 50,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: _buildStatusFilters(),
             ),
-            const Divider(height: 1),
             
             // Reports List
             Expanded(
               child: FutureBuilder<List<ReportModel>>(
                 future: _reportsFuture,
                 builder: (context, snapshot) {
-                  if (_reportsFuture == null) {
-                    return const Center(child: Text('Initializing...'));
-                  }
-                  if (snapshot.connectionState == ConnectionState.waiting) {
+                  if (_reportsFuture == null || snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
-                      ),
+                      child: CircularProgressIndicator(),
                     );
                   }
                   if (snapshot.hasError) {
@@ -157,25 +233,17 @@ class _ReportListScreenState extends State<ReportListScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(
-                            Icons.error_outline,
-                            color: Colors.red,
+                          Icon(
+                            LucideIcons.alertCircle,
+                            color: Colors.red.shade400,
                             size: 48,
                           ),
                           const SizedBox(height: 16),
-                          Text(
-                            'Error: ${snapshot.error}',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.red),
-                          ),
+                          const Text('Error loading reports'),
                           const SizedBox(height: 16),
-                          ElevatedButton.icon(
+                          ElevatedButton(
                             onPressed: _loadReports,
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Try Again'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange,
-                            ),
+                            child: const Text('Try Again'),
                           ),
                         ],
                       ),
@@ -186,59 +254,27 @@ class _ReportListScreenState extends State<ReportListScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.withOpacity(0.1),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.orange.withOpacity(0.3),
-                                width: 1,
-                              ),
-                            ),
-                            child: Icon(
-                              Icons.assignment_outlined,
-                              size: 64,
-                              color: Colors.orange.shade300,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          const Text(
-                            'You have not submitted any reports yet.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500, 
-                              color: Colors.black54,
-                            ),
+                          Icon(
+                            LucideIcons.clipboardList,
+                            size: 48,
+                            color: Colors.grey,
                           ),
                           const SizedBox(height: 16),
-                          ElevatedButton.icon(
+                          const Text('No reports yet'),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
                             onPressed: () {
                               Navigator.of(context).pushNamed(AppRoutes.createReport);
                             },
-                            icon: const Icon(Icons.add),
-                            label: const Text('Create New Report'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange,
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                            ),
+                            child: const Text('Create Report'),
                           ),
                         ],
                       ),
                     );
                   }
 
-                  // Filter reports based on selected status
-                  final allReports = snapshot.data!;
-                  final filteredReports = _filterStatus == 'All' 
-                    ? allReports 
-                    : allReports.where((report) => 
-                        report.status.toLowerCase() == _filterStatus.toLowerCase() ||
-                        (_filterStatus == 'In Progress' && 
-                          (report.status.toLowerCase() == 'inprogress' || 
-                           report.status.toLowerCase() == 'assigned'))
-                      ).toList();
+                  // Filter reports based on selected status and search query
+                  final filteredReports = _getFilteredReports(snapshot.data!);
                   
                   if (filteredReports.isEmpty) {
                     return Center(
@@ -246,17 +282,27 @@ class _ReportListScreenState extends State<ReportListScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.filter_list,
-                            size: 48,
-                            color: Colors.grey.shade400,
+                            LucideIcons.search,
+                            size: 40,
+                            color: Colors.grey,
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'No $_filterStatus reports found',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey,
-                            ),
+                            _searchQuery.isNotEmpty 
+                                ? 'No results found' 
+                                : 'No $_filterStatus reports found',
+                            style: const TextStyle(fontSize: 18),
+                          ),
+                          const SizedBox(height: 16),
+                          OutlinedButton(
+                            onPressed: () {
+                              setState(() {
+                                _filterStatus = 'All';
+                                _searchQuery = '';
+                                _searchController.clear();
+                              });
+                            },
+                            child: const Text('Clear Filters'),
                           ),
                         ],
                       ),
@@ -264,11 +310,11 @@ class _ReportListScreenState extends State<ReportListScreen> {
                   }
 
                   return ListView.builder(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
                     itemCount: filteredReports.length,
                     itemBuilder: (context, index) {
                       final report = filteredReports[index];
-                      return _buildReportCard(report, index);
+                      return _buildReportCard(report);
                     },
                   );
                 },
@@ -277,7 +323,173 @@ class _ReportListScreenState extends State<ReportListScreen> {
           ],
         ),
       ),
-      // The FloatingActionButton is now managed by HomeScreen
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.of(context).pushNamed(AppRoutes.createReport);
+        },
+        backgroundColor: Colors.orange,
+        child: const Icon(LucideIcons.plus),
+      ),
+    );
+  }
+
+  Widget _buildStatisticsCard() {
+    return Card(
+      margin: const EdgeInsets.all(16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildStatItem('Total', _totalReports, LucideIcons.clipboardList, Colors.blue),
+            _buildStatItem('Pending', _pendingReports, LucideIcons.clock, Colors.orange),
+            _buildStatItem('Active', _inProgressReports, LucideIcons.hammer, Colors.amber),
+            _buildStatItem('Done', _completedReports, LucideIcons.checkCircle, Colors.green),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildStatItem(String label, int value, IconData icon, Color color) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: color),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          value.toString(),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Colors.grey,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showSearchDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Search Reports'),
+        content: TextField(
+          controller: _searchController,
+          onChanged: (value) {
+            setState(() {
+              _searchQuery = value;
+            });
+          },
+          decoration: const InputDecoration(
+            hintText: 'Enter search term...',
+            prefixIcon: Icon(LucideIcons.search),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _searchController.clear();
+              setState(() {
+                _searchQuery = '';
+              });
+            },
+            child: const Text('Clear'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Search'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFilterBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Filter Reports',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(LucideIcons.x),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Text('Filter by Status'),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _statusFilters.map((status) {
+                  final isSelected = _filterStatus == status;
+                  
+                  return StatusUtils.buildStatusChip(
+                    status: status,
+                    isSelected: isSelected,
+                    onSelected: (selected) {
+                      setState(() {
+                        _filterStatus = status;
+                      });
+                      Navigator.pop(context);
+                    },
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _filterStatus = 'All';
+                        _searchQuery = '';
+                        _searchController.clear();
+                      });
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Clear Filters'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -305,16 +517,13 @@ class _ReportListScreenState extends State<ReportListScreen> {
     );
   }
   
-  Widget _buildReportCard(ReportModel report, int index) {
+  Widget _buildReportCard(ReportModel report) {
+    // Format date for display
+    String formattedDate = timeago.format(report.createdAt);
+    
     return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.grey.shade200, width: 1),
-      ),
+      margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
         onTap: () {
           Navigator.of(context).pushNamed(
             AppRoutes.reportDetail,
@@ -322,135 +531,77 @@ class _ReportListScreenState extends State<ReportListScreen> {
           );
         },
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Status and Date Row
+              // Status Row
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  StatusUtils.buildStatusBadge(report.status).animate()
-                    .fadeIn(duration: 400.ms, delay: 100.ms * index.clamp(0, 10))
-                    .scale(
-                      begin: const Offset(0.8, 0.8),
-                      end: const Offset(1.0, 1.0),
-                      duration: 400.ms,
-                      curve: Curves.easeOutBack
-                    ),
+                  StatusUtils.buildStatusBadge(report.status),
                   Text(
-                    _formatDate(report.createdAt),
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
+                    formattedDate,
+                    style: const TextStyle(
+                      color: Colors.grey,
                       fontSize: 12,
                     ),
-                  ).animate()
-                    .fadeIn(duration: 400.ms, delay: 150.ms * index.clamp(0, 10)),
+                  ),
                 ],
               ),
               
               const SizedBox(height: 12),
               
-              // Title
+              // Title with icon
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  StatusUtils.buildStatusAvatar(report.status, size: 32),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
               Text(
                 report.title,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 18,
+                            fontSize: 16,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ).animate()
-                .fadeIn(duration: 400.ms, delay: 200.ms * index.clamp(0, 10))
-                .slideX(begin: 0.2, end: 0, duration: 400.ms, curve: Curves.easeOutQuad),
-              
-              const SizedBox(height: 8),
-              
-              // Description
+                        ),
+                        const SizedBox(height: 4),
               Text(
                 report.description,
-                style: TextStyle(
-                  color: Colors.grey.shade700,
-                  height: 1.4,
-                ),
+                          style: const TextStyle(fontSize: 14),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-              ).animate()
-                .fadeIn(duration: 400.ms, delay: 250.ms * index.clamp(0, 10))
-                .slideX(begin: 0.2, end: 0, duration: 400.ms, curve: Curves.easeOutQuad),
-              
-              const SizedBox(height: 16),
+                        ),
               
               // Location
+                        const SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(
-                    Icons.location_on,
-                    size: 16,
-                    color: Colors.orange,
-                  ).animate()
-                    .fadeIn(duration: 400.ms, delay: 300.ms * index.clamp(0, 10))
-                    .scale(
-                      begin: const Offset(0.5, 0.5),
-                      end: const Offset(1.0, 1.0),
-                      duration: 400.ms,
-                      curve: Curves.elasticOut
-                    ),
+                            Icon(LucideIcons.mapPin, size: 14, color: Colors.orange),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       report.location,
-                      style: TextStyle(
-                        color: Colors.grey.shade800,
-                        fontSize: 14,
-                      ),
+                                style: const TextStyle(fontSize: 12),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                    ).animate()
-                      .fadeIn(duration: 400.ms, delay: 300.ms * index.clamp(0, 10)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ],
-              ),
-              
-              // Action buttons
-              Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).pushNamed(
-                          AppRoutes.reportDetail,
-                          arguments: report,
-                        );
-                      },
-                      icon: const Icon(Icons.visibility),
-                      label: const Text('View Details'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.orange,
-                      ),
-                    ).animate()
-                      .fadeIn(duration: 400.ms, delay: 350.ms * index.clamp(0, 10))
-                      .scale(
-                        begin: const Offset(0.9, 0.9), 
-                        end: const Offset(1.0, 1.0),
-                        duration: 300.ms,
-                      ),
-                  ],
-                ),
               ),
             ],
           ),
         ),
       ),
-    ).animate()
-      .fadeIn(duration: 600.ms, delay: 50.ms * index.clamp(0, 10))
-      .scale(
-        begin: const Offset(0.95, 0.95), 
-        end: const Offset(1.0, 1.0),
-        duration: 600.ms,
-        curve: Curves.easeOutQuint
       );
   }
 
@@ -466,7 +617,7 @@ class _ReportListScreenState extends State<ReportListScreen> {
     } else if (difference.inDays < 7) {
       return '${difference.inDays} days ago';
     } else {
-      return '${date.day}/${date.month}/${date.year}';
+      return DateFormat('dd MMM yyyy').format(date);
     }
   }
 } 

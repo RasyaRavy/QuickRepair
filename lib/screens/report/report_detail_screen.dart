@@ -126,6 +126,8 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         elevation: 0,
+        scrolledUnderElevation: 4.0,
+        shadowColor: Theme.of(context).colorScheme.shadow,
         backgroundColor: Colors.transparent,
         leading: IconButton(
           icon: Container(
@@ -133,6 +135,13 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.9),
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Icon(Icons.arrow_back, size: 20, color: Colors.orange.shade700),
           ),
@@ -142,21 +151,74 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Colors.orange.shade600,
-                Colors.orange.shade800,
+                Colors.orange.shade400,
+                Colors.orange.shade700,
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
         ),
-        title: Text(
-          report.title,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+        centerTitle: true,
+        title: AnimatedOpacity(
+          opacity: 1.0,
+          duration: const Duration(milliseconds: 300),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.assignment_outlined,
+                  size: 18,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Report Details',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
+        actions: [
+          if (SupabaseService.currentUser?.id == report.userId)
+            IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.more_vert,
+                  size: 18,
+                  color: Colors.white,
+                ),
+              ),
+              onPressed: () {
+                _showActionMenu(context);
+              },
+            ),
+        ],
       ),
       body: Container(
         color: Colors.grey[50],
@@ -174,13 +236,6 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
               // Report details card
               _buildDetailsCard(context, dateFormat),
 
-              // Action buttons for report owner
-              if (SupabaseService.currentUser?.id == report.userId)
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: _buildActionButtons(context),
-                ),
-              
               const SizedBox(height: 24),
             ],
           ),
@@ -641,54 +696,80 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
     );
   }
   
-  Widget _buildActionButtons(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton.icon(
-            icon: const Icon(Icons.edit_outlined),
-            label: const Text(AppStrings.editReport),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue.shade600,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              elevation: 2,
+  // Add this method to show the action menu
+  void _showActionMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              spreadRadius: 0,
+              offset: const Offset(0, -5),
             ),
-            onPressed: () {
-              Navigator.pushNamed(
-                context,
-                AppRoutes.createReport,
-                arguments: report,
-              );
-            },
-          ),
+          ],
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: ElevatedButton.icon(
-            icon: const Icon(Icons.delete_outline),
-            label: const Text(AppStrings.deleteReport),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade600,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Action item: Edit
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.edit, color: Colors.blue),
               ),
-              elevation: 2,
+              title: const Text('Edit Report'),
+              onTap: () {
+                Navigator.pop(context);
+                _editReport(context);
+              },
             ),
-            onPressed: () => _confirmDeleteReport(context),
-          ),
+            
+            // Action item: Delete
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.delete, color: Colors.red),
+              ),
+              title: const Text('Delete Report'),
+              onTap: () {
+                Navigator.pop(context);
+                _confirmDelete(context);
+              },
+            ),
+            
+            const SizedBox(height: 8),
+          ],
         ),
-      ],
+      ),
+    );
+  }
+
+  // Method to edit the report
+  void _editReport(BuildContext context) {
+    Navigator.pushNamed(
+      context,
+      AppRoutes.createReport,
+      arguments: report,
     );
   }
 
   // Method to show delete confirmation dialog
-  Future<void> _confirmDeleteReport(BuildContext context) async {
+  Future<void> _confirmDelete(BuildContext context) async {
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext dialogContext) {

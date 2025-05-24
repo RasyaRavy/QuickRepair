@@ -1,34 +1,28 @@
-class MessageModel {
+class Message {
   final String id;
-  final String reportId;
+  final String chatId;
   final String senderId;
-  final String content;
+  final String? receiverId; // Can be null if it's a group chat or system message
+  final String messageContent;
   final DateTime createdAt;
-  final DateTime? editedAt;
-  final bool isDeleted;
 
-  MessageModel({
+  Message({
     required this.id,
-    required this.reportId,
+    required this.chatId,
     required this.senderId,
-    required this.content,
+    this.receiverId,
+    required this.messageContent,
     required this.createdAt,
-    this.editedAt,
-    this.isDeleted = false,
   });
 
-  // Create from Supabase response
-  factory MessageModel.fromJson(Map<String, dynamic> json) {
-    return MessageModel(
-      id: json['id'],
-      reportId: json['report_id'],
-      senderId: json['sender_id'],
-      content: json['content'],
-      createdAt: DateTime.parse(json['created_at']),
-      editedAt: json['edited_at'] != null
-          ? DateTime.parse(json['edited_at'])
-          : null,
-      isDeleted: json['is_deleted'] ?? false,
+  factory Message.fromJson(Map<String, dynamic> json) {
+    return Message(
+      id: json['id'] as String,
+      chatId: json['chat_id'] as String,
+      senderId: json['sender_id'] as String,
+      receiverId: json['receiver_id'] as String?,
+      messageContent: json['message_content'] as String,
+      createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
 
@@ -36,28 +30,29 @@ class MessageModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'report_id': reportId,
+      'chat_id': chatId,
       'sender_id': senderId,
-      'content': content,
-      'edited_at': editedAt?.toIso8601String(),
-      'is_deleted': isDeleted,
+      'receiver_id': receiverId,
+      'message_content': messageContent,
+      'created_at': createdAt.toIso8601String(),
     };
   }
 
   // Create a copy with updated fields
-  MessageModel copyWith({
-    String? content,
-    DateTime? editedAt,
-    bool? isDeleted,
+  Message copyWith({
+    String? chatId,
+    String? senderId,
+    String? receiverId,
+    String? messageContent,
+    DateTime? createdAt,
   }) {
-    return MessageModel(
+    return Message(
       id: this.id,
-      reportId: this.reportId,
-      senderId: this.senderId,
-      content: content ?? this.content,
-      createdAt: this.createdAt,
-      editedAt: editedAt ?? this.editedAt,
-      isDeleted: isDeleted ?? this.isDeleted,
+      chatId: chatId ?? this.chatId,
+      senderId: senderId ?? this.senderId,
+      receiverId: receiverId ?? this.receiverId,
+      messageContent: messageContent ?? this.messageContent,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 } 
